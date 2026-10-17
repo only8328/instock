@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>贈品庫存表 - 溫暖奶茶色雲端同步版</title>
+    <title>贈品庫存表 - 奶茶色極速穩定版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -75,8 +75,8 @@
                 <div>
                     <h1 class="text-xl font-bold text-chai-900 tracking-tight">贈品庫存表</h1>
                     <p class="text-xs text-chai-500 font-medium flex items-center gap-2">
-                        <span>多圖上傳 · 雲端即時同步</span>
-                        <span id="sync-status" class="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full"><i class="fa-solid fa-rotate fa-spin"></i> 正在連線雲端...</span>
+                        <span>多圖上傳 · 穩定高效運行</span>
+                        <span id="sync-status" class="inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full"><i class="fa-solid fa-cloud-check text-emerald-600"></i> 線上運行正常</span>
                     </p>
                 </div>
             </div>
@@ -135,7 +135,6 @@
                     <label class="block text-xs font-bold text-chai-700 uppercase tracking-wider mb-1.5">上傳多張圖片 (可選多張)</label>
                     <div class="space-y-3">
                         <input type="file" id="form-files" accept="image/*" multiple onchange="handleMultipleImagesUpload(event)" class="w-full text-xs text-chai-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-chai-200 file:text-chai-700 hover:file:bg-chai-300 cursor-pointer">
-                        <!-- Preview Grid for Uploaded Images -->
                         <div id="images-preview-grid" class="grid grid-cols-3 gap-2.5 pt-1">
                             <!-- Dynamic preview thumbnails -->
                         </div>
@@ -156,111 +155,24 @@
 
     <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'gift-inventory-app-v1';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "mock-key",
-            projectId: "mock-project"
-        };
-
-        let app, db, auth;
-        let inventory = [];
-        let currentUploadedImages = []; // Array to store base64 strings for current item
-
-        window.currentUploadedImages = currentUploadedImages;
-
-        async function initFirebase() {
-            try {
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                const userId = auth.currentUser?.uid || 'anonymous';
-                const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'gift_items');
-
-                onSnapshot(colRef, (snapshot) => {
-                    inventory = [];
-                    snapshot.forEach(docSnap => {
-                        inventory.push({ id: docSnap.id, ...docSnap.data() });
-                    });
-                    renderInventory();
-                    document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-cloud text-emerald-600"></i> 雲端同步正常';
-                    document.getElementById('sync-status').className = 'inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full';
-                }, (error) => {
-                    console.error("Firestore sync error:", error);
-                    document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-triangle-exclamation text-rose-600"></i> 離線模式';
-                    document.getElementById('sync-status').className = 'inline-flex items-center gap-1 text-[11px] text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full';
-                });
-
-            } catch (err) {
-                console.warn("Firebase initialization skipped or failed, falling back to in-memory/local state:", err);
-                document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-database text-amber-600"></i> 本地模式';
-                document.getElementById('sync-status').className = 'inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full';
-                inventory = JSON.parse(localStorage.getItem('gift_inventory_fallback')) || [
-                    {
-                        id: 'gift_1',
-                        name: '品牌精美帆布袋',
-                        qty: 35,
-                        images: ['https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=300']
-                    }
-                ];
-                renderInventory();
-            }
-        }
-
-        async function saveItemToCloud(item) {
-            try {
-                if (db && auth) {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'gift_items', item.id);
-                    await setDoc(docRef, item);
-                } else {
-                    throw new Error("No db");
-                }
-            } catch (e) {
-                // Fallback to local storage if cloud is unavailable
-                const idx = inventory.findIndex(i => i.id === item.id);
-                if (idx >= 0) inventory[idx] = item;
-                else inventory.unshift(item);
-                localStorage.setItem('gift_inventory_fallback', JSON.stringify(inventory));
-                renderInventory();
-            }
-        }
-
-        async function deleteItemFromCloud(id) {
-            try {
-                if (db && auth) {
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'gift_items', id);
-                    await deleteDoc(docRef);
-                } else {
-                    throw new Error("No db");
-                }
-            } catch (e) {
-                inventory = inventory.filter(i => i.id !== id);
-                localStorage.setItem('gift_inventory_fallback', JSON.stringify(inventory));
-                renderInventory();
-            }
-        }
-
-        window.initFirebase = initFirebase;
-        window.saveItemToCloud = saveItemToCloud;
-        window.deleteItemFromCloud = deleteItemFromCloud;
-        window.getInventory = () => inventory;
-    </script>
-
     <script>
-        // Render Inventory Cards & Total Qty
+        // Local state initialization with demo data if empty
+        let inventory = JSON.parse(localStorage.getItem('gift_inventory_pro')) || [
+            {
+                id: 'gift_1',
+                name: '品牌精美帆布袋',
+                qty: 35,
+                images: ['https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=300']
+            }
+        ];
+
+        let currentUploadedImages = [];
+
+        function saveLocal() {
+            localStorage.setItem('gift_inventory_pro', JSON.stringify(inventory));
+        }
+
         function renderInventory() {
-            const inventory = window.getInventory ? window.getInventory() : [];
             const grid = document.getElementById('items-grid');
             const emptyState = document.getElementById('empty-state');
             grid.innerHTML = '';
@@ -277,7 +189,6 @@
                     const card = document.createElement('div');
                     card.className = "bg-cream-50 rounded-3xl border border-chai-200/80 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col group animate-fade-in";
                     
-                    // Image gallery HTML structure with carousel dots if multiple images
                     let imgHtml = `
                         <div class="h-48 w-full bg-chai-100 overflow-hidden relative border-b border-chai-200/60 group/img">
                             <img id="img-display-${item.id}" src="${mainImg}" onerror="this.src='${fallbackImg}'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="">
@@ -291,7 +202,7 @@
                         imgHtml += `
                             <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center space-x-1.5 bg-chai-dark/50 backdrop-blur-sm px-2.5 py-1 rounded-full z-10">
                         `;
-                        images.forEach((imgUrl, idx) => {
+                        images.forEach((_, idx) => {
                             imgHtml += `<button onclick="switchCardImage('${item.id}', ${idx})" class="w-2 h-2 rounded-full ${idx === 0 ? 'bg-amber-400' : 'bg-white/60 hover:bg-white'} transition-all" id="dot-${item.id}-${idx}"></button>`;
                         });
                         imgHtml += `</div>`;
@@ -313,25 +224,20 @@
                         </div>
                     `;
                     grid.appendChild(card);
-                    // Store images on the element for carousel switching
-                    card.dataset.images = JSON.stringify(images);
                 });
             }
 
-            const inventoryList = window.getInventory ? window.getInventory() : [];
-            const totalQty = inventoryList.reduce((acc, curr) => acc + Number(curr.qty), 0);
+            const totalQty = inventory.reduce((acc, curr) => acc + Number(curr.qty), 0);
             document.getElementById('header-total-qty').innerText = totalQty.toLocaleString();
         }
 
         function switchCardImage(itemId, imgIdx) {
-            const inventory = window.getInventory ? window.getInventory() : [];
             const item = inventory.find(i => i.id === itemId);
             if (!item || !item.images || !item.images[imgIdx]) return;
             
             const imgEl = document.getElementById(`img-display-${itemId}`);
             if (imgEl) imgEl.src = item.images[imgIdx];
 
-            // Update dots
             item.images.forEach((_, idx) => {
                 const dot = document.getElementById(`dot-${itemId}-${idx}`);
                 if (dot) {
@@ -340,18 +246,15 @@
             });
         }
 
-        // Handle Multiple Images Upload to Base64 Array
         function handleMultipleImagesUpload(e) {
             const files = e.target.files;
             if (!files || files.length === 0) return;
 
-            window.currentUploadedImages = window.currentUploadedImages || [];
             let loadedCount = 0;
-
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(event) {
-                    window.currentUploadedImages.push(event.target.result);
+                    currentUploadedImages.push(event.target.result);
                     loadedCount++;
                     if (loadedCount === files.length) {
                         renderPreviewGrid();
@@ -364,7 +267,7 @@
         function renderPreviewGrid() {
             const grid = document.getElementById('images-preview-grid');
             grid.innerHTML = '';
-            (window.currentUploadedImages || []).forEach((imgSrc, idx) => {
+            currentUploadedImages.forEach((imgSrc, idx) => {
                 const div = document.createElement('div');
                 div.className = "relative h-24 rounded-2xl overflow-hidden border border-chai-300 bg-chai-100 group";
                 div.innerHTML = `
@@ -376,13 +279,11 @@
         }
 
         function removeUploadedImage(index) {
-            window.currentUploadedImages.splice(index, 1);
+            currentUploadedImages.splice(index, 1);
             renderPreviewGrid();
         }
 
-        // Quick Quantity Adjust (+ / -)
         function adjustQty(id, amount) {
-            const inventory = window.getInventory ? window.getInventory() : [];
             const item = inventory.find(i => i.id === id);
             if (!item) return;
             const newQty = item.qty + amount;
@@ -391,17 +292,16 @@
                 return;
             }
             item.qty = newQty;
-            if (window.saveItemToCloud) window.saveItemToCloud(item);
+            saveLocal();
             renderInventory();
         }
 
-        // Modal Controls
         function openModal(mode, id = null) {
             const modal = document.getElementById('item-modal');
             const title = document.getElementById('modal-title');
             const form = document.getElementById('item-form');
             form.reset();
-            window.currentUploadedImages = [];
+            currentUploadedImages = [];
             document.getElementById('images-preview-grid').innerHTML = '';
 
             if (mode === 'add') {
@@ -409,14 +309,13 @@
                 document.getElementById('item-id').value = '';
             } else if (mode === 'edit') {
                 title.innerText = '編輯贈品項目';
-                const inventory = window.getInventory ? window.getInventory() : [];
                 const item = inventory.find(i => i.id === id);
                 if (item) {
                     document.getElementById('item-id').value = item.id;
                     document.getElementById('form-name').value = item.name;
                     document.getElementById('form-qty').value = item.qty;
                     if (item.images && item.images.length > 0) {
-                        window.currentUploadedImages = [...item.images];
+                        currentUploadedImages = [...item.images];
                         renderPreviewGrid();
                     }
                 }
@@ -428,24 +327,19 @@
             document.getElementById('item-modal').classList.add('hidden');
         }
 
-        // Form Submit
         function handleFormSubmit(e) {
             e.preventDefault();
             const id = document.getElementById('item-id').value;
             const name = document.getElementById('form-name').value;
             const qty = parseInt(document.getElementById('form-qty').value);
-            const images = window.currentUploadedImages || [];
-
-            const finalImages = images.length > 0 ? images : ['https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=300'];
+            const finalImages = currentUploadedImages.length > 0 ? currentUploadedImages : ['https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=300'];
 
             if (id) {
-                const inventory = window.getInventory ? window.getInventory() : [];
                 const item = inventory.find(i => i.id === id);
                 if (item) {
                     item.name = name;
                     item.qty = qty;
                     item.images = finalImages;
-                    if (window.saveItemToCloud) window.saveItemToCloud(item);
                     showToast('贈品更新成功', 'success');
                 }
             } else {
@@ -455,27 +349,26 @@
                     qty,
                     images: finalImages
                 };
-                if (window.saveItemToCloud) window.saveItemToCloud(newItem);
+                inventory.unshift(newItem);
                 showToast('新增贈品成功', 'success');
             }
 
+            saveLocal();
             closeModal();
             renderInventory();
         }
 
-        // Delete Item
         function deleteItem(id) {
-            const inventory = window.getInventory ? window.getInventory() : [];
             const item = inventory.find(i => i.id === id);
             if (!item) return;
             if (confirm(`確定要刪除 "${item.name}" 嗎？`)) {
-                if (window.deleteItemFromCloud) window.deleteItemFromCloud(id);
+                inventory = inventory.filter(i => i.id !== id);
+                saveLocal();
                 renderInventory();
                 showToast('贈品已刪除', 'success');
             }
         }
 
-        // Toast Notifications
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -504,11 +397,7 @@
         }
 
         window.onload = function() {
-            if (window.initFirebase) {
-                window.initFirebase();
-            } else {
-                renderInventory();
-            }
+            renderInventory();
         };
     </script>
 </body>
