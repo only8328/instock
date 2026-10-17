@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>贈品庫存表 - 奶茶色極速穩定版</title>
+    <title>贈品庫存表 - 雲端即時同步版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -75,8 +75,8 @@
                 <div>
                     <h1 class="text-xl font-bold text-chai-900 tracking-tight">贈品庫存表</h1>
                     <p class="text-xs text-chai-500 font-medium flex items-center gap-2">
-                        <span>多圖上傳 · 穩定高效運行</span>
-                        <span id="sync-status" class="inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full"><i class="fa-solid fa-cloud-check text-emerald-600"></i> 線上運行正常</span>
+                        <span>多圖上傳 · 雲端即時同步</span>
+                        <span id="sync-status" class="inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full"><i class="fa-solid fa-rotate fa-spin"></i> 連線雲端中...</span>
                     </p>
                 </div>
             </div>
@@ -155,24 +155,110 @@
 
     <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
-    <script>
-        // Local state initialization with demo data if empty
-        let inventory = JSON.parse(localStorage.getItem('gift_inventory_pro')) || [
-            {
-                id: 'gift_1',
-                name: '品牌精美帆布袋',
-                qty: 35,
-                images: ['https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=300']
-            }
-        ];
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'gift-inventory-shared-db-v1';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyMockKeyForPublicFallback",
+            authDomain: "mock-app.firebaseapp.com",
+            projectId: "mock-app"
+        };
+
+        let db, auth;
+        let inventory = [];
         let currentUploadedImages = [];
+        window.currentUploadedImages = currentUploadedImages;
 
-        function saveLocal() {
-            localStorage.setItem('gift_inventory_pro', JSON.stringify(inventory));
+        async function initCloud() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'gift_items_v2');
+
+                // Real-time synchronization listener
+                onSnapshot(colRef, (snapshot) => {
+                    inventory = [];
+                    snapshot.forEach(docSnap => {
+                        inventory.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    renderInventory();
+                    document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-cloud text-emerald-600"></i> 雲端同步已連線';
+                    document.getElementById('sync-status').className = 'inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full';
+                }, (error) => {
+                    console.warn("Cloud sync fallback to local storage:", error);
+                    enableLocalStorageMode();
+                });
+
+            } catch (err) {
+                console.warn("Firebase init failed, using local storage fallback:", err);
+                enableLocalStorageMode();
+            }
         }
 
+        function enableLocalStorageMode() {
+            document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-database text-amber-600"></i> 本地模式';
+            document.getElementById('sync-status').className = 'inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full';
+            inventory = JSON.parse(localStorage.getItem('gift_inventory_local_v2')) || [
+                {
+                    id: 'gift_1',
+                    name: '品牌精美帆布袋',
+                    qty: 35,
+                    images: ['https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=300']
+                }
+            ];
+            renderInventory();
+        }
+
+        window.saveItem = async function(item) {
+            try {
+                if (db && auth && auth.currentUser) {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'gift_items_v2', item.id);
+                    await setDoc(docRef, item);
+                } else {
+                    throw new Error("No cloud DB");
+                }
+            } catch (e) {
+                const idx = inventory.findIndex(i => i.id === item.id);
+                if (idx >= 0) inventory[idx] = item;
+                else inventory.unshift(item);
+                localStorage.setItem('gift_inventory_local_v2', JSON.stringify(inventory));
+                renderInventory();
+            }
+        };
+
+        window.deleteItemCloud = async function(id) {
+            try {
+                if (db && auth && auth.currentUser) {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'gift_items_v2', id);
+                    await deleteDoc(docRef);
+                } else {
+                    throw new Error("No cloud DB");
+                }
+            } catch (e) {
+                inventory = inventory.filter(i => i.id !== id);
+                localStorage.setItem('gift_inventory_local_v2', JSON.stringify(inventory));
+                renderInventory();
+            }
+        };
+
+        window.getInventory = () => inventory;
+        window.initCloud = initCloud;
+    </script>
+
+    <script>
         function renderInventory() {
+            const inventory = window.getInventory ? window.getInventory() : [];
             const grid = document.getElementById('items-grid');
             const emptyState = document.getElementById('empty-state');
             grid.innerHTML = '';
@@ -227,11 +313,13 @@
                 });
             }
 
-            const totalQty = inventory.reduce((acc, curr) => acc + Number(curr.qty), 0);
+            const inventoryList = window.getInventory ? window.getInventory() : [];
+            const totalQty = inventoryList.reduce((acc, curr) => acc + Number(curr.qty), 0);
             document.getElementById('header-total-qty').innerText = totalQty.toLocaleString();
         }
 
         function switchCardImage(itemId, imgIdx) {
+            const inventory = window.getInventory ? window.getInventory() : [];
             const item = inventory.find(i => i.id === itemId);
             if (!item || !item.images || !item.images[imgIdx]) return;
             
@@ -250,11 +338,13 @@
             const files = e.target.files;
             if (!files || files.length === 0) return;
 
+            window.currentUploadedImages = window.currentUploadedImages || [];
             let loadedCount = 0;
+
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(event) {
-                    currentUploadedImages.push(event.target.result);
+                    window.currentUploadedImages.push(event.target.result);
                     loadedCount++;
                     if (loadedCount === files.length) {
                         renderPreviewGrid();
@@ -267,7 +357,7 @@
         function renderPreviewGrid() {
             const grid = document.getElementById('images-preview-grid');
             grid.innerHTML = '';
-            currentUploadedImages.forEach((imgSrc, idx) => {
+            (window.currentUploadedImages || []).forEach((imgSrc, idx) => {
                 const div = document.createElement('div');
                 div.className = "relative h-24 rounded-2xl overflow-hidden border border-chai-300 bg-chai-100 group";
                 div.innerHTML = `
@@ -279,11 +369,12 @@
         }
 
         function removeUploadedImage(index) {
-            currentUploadedImages.splice(index, 1);
+            window.currentUploadedImages.splice(index, 1);
             renderPreviewGrid();
         }
 
         function adjustQty(id, amount) {
+            const inventory = window.getInventory ? window.getInventory() : [];
             const item = inventory.find(i => i.id === id);
             if (!item) return;
             const newQty = item.qty + amount;
@@ -292,7 +383,7 @@
                 return;
             }
             item.qty = newQty;
-            saveLocal();
+            if (window.saveItem) window.saveItem(item);
             renderInventory();
         }
 
@@ -301,7 +392,7 @@
             const title = document.getElementById('modal-title');
             const form = document.getElementById('item-form');
             form.reset();
-            currentUploadedImages = [];
+            window.currentUploadedImages = [];
             document.getElementById('images-preview-grid').innerHTML = '';
 
             if (mode === 'add') {
@@ -309,13 +400,14 @@
                 document.getElementById('item-id').value = '';
             } else if (mode === 'edit') {
                 title.innerText = '編輯贈品項目';
+                const inventory = window.getInventory ? window.getInventory() : [];
                 const item = inventory.find(i => i.id === id);
                 if (item) {
                     document.getElementById('item-id').value = item.id;
                     document.getElementById('form-name').value = item.name;
                     document.getElementById('form-qty').value = item.qty;
                     if (item.images && item.images.length > 0) {
-                        currentUploadedImages = [...item.images];
+                        window.currentUploadedImages = [...item.images];
                         renderPreviewGrid();
                     }
                 }
@@ -332,14 +424,18 @@
             const id = document.getElementById('item-id').value;
             const name = document.getElementById('form-name').value;
             const qty = parseInt(document.getElementById('form-qty').value);
-            const finalImages = currentUploadedImages.length > 0 ? currentUploadedImages : ['https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=300'];
+            const images = window.currentUploadedImages || [];
+
+            const finalImages = images.length > 0 ? images : ['https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=300'];
 
             if (id) {
+                const inventory = window.getInventory ? window.getInventory() : [];
                 const item = inventory.find(i => i.id === id);
                 if (item) {
                     item.name = name;
                     item.qty = qty;
                     item.images = finalImages;
+                    if (window.saveItem) window.saveItem(item);
                     showToast('贈品更新成功', 'success');
                 }
             } else {
@@ -349,21 +445,20 @@
                     qty,
                     images: finalImages
                 };
-                inventory.unshift(newItem);
+                if (window.saveItem) window.saveItem(newItem);
                 showToast('新增贈品成功', 'success');
             }
 
-            saveLocal();
             closeModal();
             renderInventory();
         }
 
         function deleteItem(id) {
+            const inventory = window.getInventory ? window.getInventory() : [];
             const item = inventory.find(i => i.id === id);
             if (!item) return;
             if (confirm(`確定要刪除 "${item.name}" 嗎？`)) {
-                inventory = inventory.filter(i => i.id !== id);
-                saveLocal();
+                if (window.deleteItemCloud) window.deleteItemCloud(id);
                 renderInventory();
                 showToast('贈品已刪除', 'success');
             }
@@ -397,7 +492,11 @@
         }
 
         window.onload = function() {
-            renderInventory();
+            if (window.initCloud) {
+                window.initCloud();
+            } else {
+                renderInventory();
+            }
         };
     </script>
 </body>
