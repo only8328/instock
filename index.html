@@ -39,33 +39,20 @@
         }
     </script>
     <style>
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #F7F2EC;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #DFD1BF;
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #C7B299;
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #F7F2EC; }
+        ::-webkit-scrollbar-thumb { background: #DFD1BF; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #C7B299; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fade-in {
-            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+        .animate-fade-in { animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
 </head>
 <body class="h-full bg-chai-50 text-chai-800 font-sans antialiased flex flex-col selection:bg-chai-300 selection:text-chai-900">
 
     <div id="app" class="flex-1 flex flex-col max-w-5xl mx-auto w-full p-4 sm:p-8 overflow-hidden">
-
         <!-- Top Header & Summary -->
         <header class="bg-cream-50/90 backdrop-blur-md border border-chai-200/80 rounded-3xl p-6 shadow-sm mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="flex items-center space-x-4">
@@ -95,11 +82,7 @@
 
         <!-- Main Items Grid Area -->
         <main class="flex-1 overflow-y-auto pr-1">
-            <div id="items-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                <!-- Dynamic Cards -->
-            </div>
-
-            <!-- Empty State -->
+            <div id="items-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
             <div id="empty-state" class="hidden py-24 text-center">
                 <div class="h-20 w-20 bg-chai-100 text-chai-400 rounded-3xl flex items-center justify-center mx-auto text-3xl mb-4 shadow-inner">
                     <i class="fa-solid fa-gifts"></i>
@@ -110,6 +93,7 @@
         </main>
     </div>
 
+    <!-- Modal Form -->
     <div id="item-modal" class="fixed inset-0 bg-chai-dark/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden animate-fade-in">
         <div class="bg-cream-50 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-chai-200 max-h-[90vh] flex flex-col">
             <div class="px-6 py-5 border-b border-chai-200/80 flex items-center justify-between bg-cream-100/70 shrink-0">
@@ -120,34 +104,24 @@
             </div>
             <form id="item-form" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4.5 overflow-y-auto flex-1">
                 <input type="hidden" id="item-id">
-                
                 <div>
                     <label class="block text-xs font-bold text-chai-700 uppercase tracking-wider mb-1.5">贈品名稱 *</label>
                     <input type="text" id="form-name" required placeholder="例如：品牌精美帆布袋" class="w-full px-4 py-2.5 bg-cream-100/60 border border-chai-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-chai-500/30 focus:border-chai-600 transition-all text-chai-900 font-medium">
                 </div>
-
                 <div>
                     <label class="block text-xs font-bold text-chai-700 uppercase tracking-wider mb-1.5">數量 *</label>
                     <input type="number" id="form-qty" required min="0" value="10" class="w-full px-4 py-2.5 bg-cream-100/60 border border-chai-300 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-chai-500/30 focus:border-chai-600 transition-all text-chai-900 font-medium font-mono">
                 </div>
-
                 <div>
                     <label class="block text-xs font-bold text-chai-700 uppercase tracking-wider mb-1.5">上傳多張圖片 (可選多張)</label>
                     <div class="space-y-3">
                         <input type="file" id="form-files" accept="image/*" multiple onchange="handleMultipleImagesUpload(event)" class="w-full text-xs text-chai-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-chai-200 file:text-chai-700 hover:file:bg-chai-300 cursor-pointer">
-                        <div id="images-preview-grid" class="grid grid-cols-3 gap-2.5 pt-1">
-                            <!-- Dynamic preview thumbnails -->
-                        </div>
+                        <div id="images-preview-grid" class="grid grid-cols-3 gap-2.5 pt-1"></div>
                     </div>
                 </div>
-
                 <div class="pt-4 flex items-center justify-end space-x-3.5 border-t border-chai-200 shrink-0">
-                    <button type="button" onclick="closeModal()" class="px-5 py-2.5 rounded-2xl border border-chai-300 text-sm font-semibold text-chai-700 hover:bg-chai-100 transition-all">
-                        取消
-                    </button>
-                    <button type="submit" class="px-5.5 py-2.5 rounded-2xl bg-gradient-to-r from-chai-600 to-chai-700 hover:from-chai-700 hover:to-chai-800 text-cream-50 text-sm font-semibold shadow-md shadow-chai-700/20 transition-all">
-                        儲存贈品
-                    </button>
+                    <button type="button" onclick="closeModal()" class="px-5 py-2.5 rounded-2xl border border-chai-300 text-sm font-semibold text-chai-700 hover:bg-chai-100 transition-all">取消</button>
+                    <button type="submit" class="px-5.5 py-2.5 rounded-2xl bg-gradient-to-r from-chai-600 to-chai-700 hover:from-chai-700 hover:to-chai-800 text-cream-50 text-sm font-semibold shadow-md shadow-chai-700/20 transition-all">儲存贈品</button>
                 </div>
             </form>
         </div>
@@ -160,13 +134,20 @@
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'gift-inventory-shared-db-v1';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-            apiKey: "AIzaSyMockKeyForPublicFallback",
-            authDomain: "mock-app.firebaseapp.com",
-            projectId: "mock-app"
-        };
-
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'gift-inventory-realtime-v1';
+        
+        // ==========================================================
+        // 請將下方 firebaseConfig 替換為您從 Firebase 控制台取得的真實數值
+        // ==========================================================
+        const firebaseConfig = {
+  apiKey: "AIzaSyBBZMSZv8a8mHMp9YuTfjGhyVT_tlN-usE",
+  authDomain: "instock-80b3a.firebaseapp.com",
+  projectId: "instock-80b3a",
+  storageBucket: "instock-80b3a.firebasestorage.app",
+  messagingSenderId: "445130320238",
+  appId: "1:445130320238:web:64ec35de720eba8abaf97f",
+  measurementId: "G-NQ0S6CH4MF"
+};
         let db, auth;
         let inventory = [];
         let currentUploadedImages = [];
@@ -186,37 +167,30 @@
 
                 const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'gift_items_v2');
 
-                // Real-time synchronization listener
+                // 即時監聽雲端資料變動
                 onSnapshot(colRef, (snapshot) => {
                     inventory = [];
                     snapshot.forEach(docSnap => {
                         inventory.push({ id: docSnap.id, ...docSnap.data() });
                     });
                     renderInventory();
-                    document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-cloud text-emerald-600"></i> 雲端同步已連線';
+                    document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-cloud text-emerald-600"></i> 雲端即時同步已連線';
                     document.getElementById('sync-status').className = 'inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full';
                 }, (error) => {
-                    console.warn("Cloud sync fallback to local storage:", error);
+                    console.warn("Cloud sync error:", error);
                     enableLocalStorageMode();
                 });
 
             } catch (err) {
-                console.warn("Firebase init failed, using local storage fallback:", err);
+                console.warn("Firebase init failed, using local mode:", err);
                 enableLocalStorageMode();
             }
         }
 
         function enableLocalStorageMode() {
-            document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-database text-amber-600"></i> 本地模式';
+            document.getElementById('sync-status').innerHTML = '<i class="fa-solid fa-database text-amber-600"></i> 本地模式 (請檢查Firebase設定)';
             document.getElementById('sync-status').className = 'inline-flex items-center gap-1 text-[11px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full';
-            inventory = JSON.parse(localStorage.getItem('gift_inventory_local_v2')) || [
-                {
-                    id: 'gift_1',
-                    name: '品牌精美帆布袋',
-                    qty: 35,
-                    images: ['https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=300']
-                }
-            ];
+            inventory = JSON.parse(localStorage.getItem('gift_inventory_local_v2')) || [];
             renderInventory();
         }
 
@@ -279,15 +253,13 @@
                         <div class="h-48 w-full bg-chai-100 overflow-hidden relative border-b border-chai-200/60 group/img">
                             <img id="img-display-${item.id}" src="${mainImg}" onerror="this.src='${fallbackImg}'" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="">
                             <div class="absolute top-3 right-3 flex items-center space-x-1 bg-cream-50/90 backdrop-blur-md p-1 rounded-xl border border-chai-200 shadow-sm z-10">
-                                <button onclick="openModal('edit', '${item.id}')" title="編輯贈品" class="h-7 w-7 rounded-lg hover:bg-chai-200 text-chai-700 flex items-center justify-center transition-all text-xs"><i class="fa-solid fa-pen"></i></button>
-                                <button onclick="deleteItem('${item.id}')" title="刪除贈品" class="h-7 w-7 rounded-lg hover:bg-rose-100 text-chai-700 hover:text-rose-700 flex items-center justify-center transition-all text-xs"><i class="fa-solid fa-trash-can"></i></button>
+                                <button onclick="openModal('edit', '${item.id}')" title="編輯" class="h-7 w-7 rounded-lg hover:bg-chai-200 text-chai-700 flex items-center justify-center transition-all text-xs"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteItem('${item.id}')" title="刪除" class="h-7 w-7 rounded-lg hover:bg-rose-100 text-chai-700 hover:text-rose-700 flex items-center justify-center transition-all text-xs"><i class="fa-solid fa-trash-can"></i></button>
                             </div>
                     `;
 
                     if (images.length > 1) {
-                        imgHtml += `
-                            <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center space-x-1.5 bg-chai-dark/50 backdrop-blur-sm px-2.5 py-1 rounded-full z-10">
-                        `;
+                        imgHtml += `<div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center space-x-1.5 bg-chai-dark/50 backdrop-blur-sm px-2.5 py-1 rounded-full z-10">`;
                         images.forEach((_, idx) => {
                             imgHtml += `<button onclick="switchCardImage('${item.id}', ${idx})" class="w-2 h-2 rounded-full ${idx === 0 ? 'bg-amber-400' : 'bg-white/60 hover:bg-white'} transition-all" id="dot-${item.id}-${idx}"></button>`;
                         });
@@ -337,18 +309,14 @@
         function handleMultipleImagesUpload(e) {
             const files = e.target.files;
             if (!files || files.length === 0) return;
-
             window.currentUploadedImages = window.currentUploadedImages || [];
             let loadedCount = 0;
-
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(event) {
                     window.currentUploadedImages.push(event.target.result);
                     loadedCount++;
-                    if (loadedCount === files.length) {
-                        renderPreviewGrid();
-                    }
+                    if (loadedCount === files.length) renderPreviewGrid();
                 };
                 reader.readAsDataURL(file);
             });
@@ -425,7 +393,6 @@
             const name = document.getElementById('form-name').value;
             const qty = parseInt(document.getElementById('form-qty').value);
             const images = window.currentUploadedImages || [];
-
             const finalImages = images.length > 0 ? images : ['https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=300'];
 
             if (id) {
@@ -469,10 +436,8 @@
             const toast = document.createElement('div');
             const bgClass = type === 'success' ? 'bg-chai-dark text-cream-50 border border-chai-700/60' : 'bg-rose-800 text-white';
             const icon = type === 'success' ? 'fa-circle-check text-amber-400' : 'fa-triangle-exclamation text-rose-200';
-            
             toast.className = `flex items-center space-x-3.5 px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold ${bgClass} animate-fade-in pointer-events-auto`;
             toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i><span>${escapeHtml(message)}</span>`;
-            
             container.appendChild(toast);
             setTimeout(() => {
                 toast.style.opacity = '0';
@@ -492,11 +457,8 @@
         }
 
         window.onload = function() {
-            if (window.initCloud) {
-                window.initCloud();
-            } else {
-                renderInventory();
-            }
+            if (window.initCloud) window.initCloud();
+            else renderInventory();
         };
     </script>
 </body>
